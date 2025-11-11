@@ -84,130 +84,17 @@ def create_reference_template():
     doc.add_heading('Sample Heading 3', level=3)
     doc.add_paragraph('More sample text.')
 
-    # Add a sample table to establish table styling matching editor
+    # Add a sample table with default styling
     table = doc.add_table(rows=3, cols=4)
-    table.style = 'Table Grid'
 
-    # Set table to have borders (important for Pandoc to pick up)
-    from docx.enum.table import WD_TABLE_ALIGNMENT
-    from docx.oxml import OxmlElement
+    # Add simple header row
+    for i, cell in enumerate(table.rows[0].cells):
+        cell.text = f'Header {i+1}'
 
-    # Function to set cell borders
-    def set_cell_border(cell, **kwargs):
-        """
-        Set cell borders
-        Usage:
-        set_cell_border(
-            cell,
-            top={"sz": 12, "val": "single", "color": "#D1D5DB"},
-            bottom={"sz": 12, "val": "single", "color": "#D1D5DB"},
-            start={"sz": 12, "val": "single", "color": "#D1D5DB"},
-            end={"sz": 12, "val": "single", "color": "#D1D5DB"},
-        )
-        """
-        tc = cell._element
-        tcPr = tc.get_or_add_tcPr()
-
-        # Check for tag existence, if none found, then create one
-        tcBorders = tcPr.find(qn('w:tcBorders'))
-        if tcBorders is None:
-            tcBorders = OxmlElement('w:tcBorders')
-            tcPr.append(tcBorders)
-
-        # List of border positions
-        for edge in ('start', 'top', 'end', 'bottom', 'insideH', 'insideV'):
-            edge_data = kwargs.get(edge)
-            if edge_data:
-                tag = 'w:{}'.format(edge)
-
-                element = tcBorders.find(qn(tag))
-                if element is None:
-                    element = OxmlElement(tag)
-                    tcBorders.append(element)
-
-                # Set border attributes
-                for key in ["sz", "val", "color", "space", "shadow"]:
-                    if key in edge_data:
-                        element.set(qn('w:{}'.format(key)), str(edge_data[key]))
-
-    def qn(tag):
-        """Get qualified name"""
-        from docx.oxml.ns import qn as _qn
-        return _qn(tag)
-
-    # Apply borders and styling to all cells
-    border_config = {
-        "sz": 8, # border size in eighths of a point (8 = 1pt)
-        "val": "single",  # border style
-        "color": "D1D5DB",  # gray-300 color to match editor
-    }
-
-    # Style header row
-    header_cells = table.rows[0].cells
-    for i, cell in enumerate(header_cells):
-        # Set borders
-        set_cell_border(
-            cell,
-            top=border_config,
-            bottom=border_config,
-            start=border_config,
-            end=border_config,
-        )
-
-        # Set cell background color to light gray (matching editor's bg-gray-50)
-        shading_elm = cell._element.get_or_add_tcPr()
-        shading = parse_xml(r'<w:shd {} w:fill="F3F4F6"/>'.format(nsdecls('w')))
-        shading_elm.append(shading)
-
-        # Set cell padding for spacious look
-        tc = cell._element
-        tcPr = tc.get_or_add_tcPr()
-        tcMar = parse_xml(r'<w:tcMar {}>'
-                         r'<w:top w:w="180" w:type="dxa"/>'  # Increased padding
-                         r'<w:left w:w="180" w:type="dxa"/>'
-                         r'<w:bottom w:w="180" w:type="dxa"/>'
-                         r'<w:right w:w="180" w:type="dxa"/>'
-                         r'</w:tcMar>'.format(nsdecls('w')))
-        tcPr.append(tcMar)
-
-        # Make header text bold and black
-        paragraph = cell.paragraphs[0]
-        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        run = paragraph.add_run(f'Header {i+1}')
-        run.font.bold = True
-        run.font.name = 'Arial'
-        run.font.size = Pt(11)
-        run.font.color.rgb = RGBColor(0, 0, 0)
-
-    # Add sample data rows with borders
+    # Add simple data rows
     for row_idx in range(1, 3):
         for col_idx, cell in enumerate(table.rows[row_idx].cells):
-            # Set borders
-            set_cell_border(
-                cell,
-                top=border_config,
-                bottom=border_config,
-                start=border_config,
-                end=border_config,
-            )
-
-            # Set cell padding
-            tc = cell._element
-            tcPr = tc.get_or_add_tcPr()
-            tcMar = parse_xml(r'<w:tcMar {}>'
-                             r'<w:top w:w="180" w:type="dxa"/>'
-                             r'<w:left w:w="180" w:type="dxa"/>'
-                             r'<w:bottom w:w="180" w:type="dxa"/>'
-                             r'<w:right w:w="180" w:type="dxa"/>'
-                             r'</w:tcMar>'.format(nsdecls('w')))
-            tcPr.append(tcMar)
-
-            # Add data
-            paragraph = cell.paragraphs[0]
-            run = paragraph.add_run(f'Data {row_idx}-{col_idx+1}')
-            run.font.name = 'Arial'
-            run.font.size = Pt(11)
-            run.font.color.rgb = RGBColor(0, 0, 0)
+            cell.text = f'Data {row_idx}-{col_idx+1}'
 
     # Save the template
     output_path = os.path.join(os.path.dirname(__file__), 'templates', 'reference.docx')
@@ -215,11 +102,6 @@ def create_reference_template():
     doc.save(output_path)
 
     print(f"Reference template created successfully: {output_path}")
-
-
-# XML parsing helpers for table styling
-from docx.oxml import parse_xml
-from docx.oxml.ns import nsdecls
 
 
 if __name__ == "__main__":
